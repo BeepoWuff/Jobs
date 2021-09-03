@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import com.gamingmesh.jobs.stuff.TimeManage;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -286,8 +287,8 @@ public final class JobsPaymentListener implements Listener {
 	    Long time = cowMilkingTimer.getIfPresent(cowUUID);
 	    if (time != null) {
 		if (System.currentTimeMillis() < time + Jobs.getGCManager().CowMilkingTimer) {
-		    long timer = ((Jobs.getGCManager().CowMilkingTimer - (System.currentTimeMillis() - time)) / 1000);
-		    player.sendMessage(Jobs.getLanguage().getMessage("message.cowtimer", "%time%", timer));
+		    String timeOutput = TimeManage.to24hourShort(Jobs.getGCManager().CowMilkingTimer - (System.currentTimeMillis() - time));
+		    player.sendMessage(Jobs.getLanguage().getMessage("message.cowtimer", "%time%", timeOutput));
 
 		    if (Jobs.getGCManager().CancelCowMilking)
 			event.setCancelled(true);

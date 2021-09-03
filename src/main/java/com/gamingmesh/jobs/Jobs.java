@@ -33,6 +33,7 @@ import java.util.WeakHashMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
+import com.gamingmesh.jobs.stuff.*;
 import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
@@ -99,10 +100,6 @@ import com.gamingmesh.jobs.listeners.JobsPayment14Listener;
 import com.gamingmesh.jobs.listeners.JobsPaymentListener;
 import com.gamingmesh.jobs.listeners.PistonProtectionListener;
 import com.gamingmesh.jobs.selection.SelectionManager;
-import com.gamingmesh.jobs.stuff.Loging;
-import com.gamingmesh.jobs.stuff.TabComplete;
-import com.gamingmesh.jobs.stuff.ToggleBarHandling;
-import com.gamingmesh.jobs.stuff.VersionChecker;
 import com.gamingmesh.jobs.stuff.complement.Complement;
 import com.gamingmesh.jobs.stuff.complement.Complement1;
 import com.gamingmesh.jobs.stuff.complement.Complement2;
@@ -1309,8 +1306,8 @@ public final class Jobs extends JavaPlugin {
 
 		if ((time > System.currentTimeMillis() || bp.isPaid()) && bp.getAction() != DBAction.DELETE) {
 		    if (inform && player.canGetPaid(info)) {
-			int sec = Math.round((time - System.currentTimeMillis()) / 1000L);
-			CMIActionBar.send(player.getPlayer(), lManager.getMessage("message.blocktimer", "[time]", sec));
+			String timeOutput = TimeManage.to24hourShort(time - System.currentTimeMillis());
+			CMIActionBar.send(player.getPlayer(), lManager.getMessage("message.blocktimer", "[time]", timeOutput));
 		    }
 
 		    return false;
@@ -1338,8 +1335,8 @@ public final class Jobs extends JavaPlugin {
 
 		    if ((time > System.currentTimeMillis() || bp.isPaid()) && bp.getAction() != DBAction.DELETE) {
 			if (inform && player.canGetPaid(info)) {
-			    int sec = Math.round((time - System.currentTimeMillis()) / 1000L);
-			    CMIActionBar.send(player.getPlayer(), lManager.getMessage("message.blocktimer", "[time]", sec));
+			    String timeOutput = TimeManage.to24hourShort(time - System.currentTimeMillis());
+			    CMIActionBar.send(player.getPlayer(), lManager.getMessage("message.blocktimer", "[time]", timeOutput));
 			}
 
 			getBpManager().add(block, cd);
