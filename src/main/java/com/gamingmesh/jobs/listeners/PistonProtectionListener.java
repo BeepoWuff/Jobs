@@ -2,6 +2,7 @@ package com.gamingmesh.jobs.listeners;
 
 import java.util.List;
 
+import com.gamingmesh.jobs.config.BlockProtectionManager;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -26,11 +27,8 @@ public class PistonProtectionListener implements Listener {
 	for (int i = event.getBlocks().size() - 1; i >= 0; i--) {
 	    Location oldLoc = event.getBlocks().get(i).getLocation();
 	    Location newLoc = oldLoc.clone().add(dir.getModX(), dir.getModY(), dir.getModZ());
-	    Long bp = Jobs.getBpManager().getTime(oldLoc);
 
-	    if (bp == null)
-		continue;
-	    Jobs.getBpManager().addP(newLoc, bp, false, true);
+	    relocateProtections(oldLoc, newLoc);
 	}
     }
 
@@ -45,10 +43,18 @@ public class PistonProtectionListener implements Listener {
 	for (int i = blocks.size() - 1; i >= 0; i--) {
 	    Location oldLoc = blocks.get(i).getLocation();
 	    Location newLoc = oldLoc.clone().add(dir.getModX(), dir.getModY(), dir.getModZ());
-	    Long bp = Jobs.getBpManager().getTime(oldLoc);
-	    if (bp == null)
-		continue;
-	    Jobs.getBpManager().addP(newLoc, bp, false, true);
+
+	    relocateProtections(oldLoc, newLoc);
 	}
+    }
+
+    private static void relocateProtections(Location oldLocation, Location newLocation) {
+	BlockProtectionManager.forActionType(actionType -> {
+	    Long bp = Jobs.getBpManager().getTime(actionType, oldLocation);
+	    if (bp == null)
+		return;
+
+	    Jobs.getBpManager().addP(actionType, newLocation, bp, false, true);
+	});
     }
 }

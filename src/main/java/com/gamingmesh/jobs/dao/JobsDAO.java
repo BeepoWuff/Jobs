@@ -14,6 +14,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
+import com.gamingmesh.jobs.container.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
@@ -21,22 +22,6 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import com.gamingmesh.jobs.Jobs;
-import com.gamingmesh.jobs.container.ArchivedJobs;
-import com.gamingmesh.jobs.container.BlockProtection;
-import com.gamingmesh.jobs.container.Convert;
-import com.gamingmesh.jobs.container.CurrencyType;
-import com.gamingmesh.jobs.container.DBAction;
-import com.gamingmesh.jobs.container.ExploreChunk;
-import com.gamingmesh.jobs.container.ExploreRegion;
-import com.gamingmesh.jobs.container.Job;
-import com.gamingmesh.jobs.container.JobProgression;
-import com.gamingmesh.jobs.container.JobsPlayer;
-import com.gamingmesh.jobs.container.JobsWorld;
-import com.gamingmesh.jobs.container.Log;
-import com.gamingmesh.jobs.container.LogAmounts;
-import com.gamingmesh.jobs.container.PlayerInfo;
-import com.gamingmesh.jobs.container.PlayerPoints;
-import com.gamingmesh.jobs.container.TopList;
 import com.gamingmesh.jobs.dao.JobsManager.DataBaseType;
 import com.gamingmesh.jobs.economy.PaymentData;
 import com.gamingmesh.jobs.stuff.TimeManage;
@@ -212,6 +197,7 @@ public abstract class JobsDAO {
 
     public enum BlockTableFields implements JobsTableInterface {
 	world("varchar(36)"),
+	actiontype("varchar(36)"),
 	x("int"),
 	y("int"),
 	z("int"),
@@ -2276,7 +2262,8 @@ public abstract class JobsDAO {
 		+ "`, `" + BlockTableFields.recorded.getCollumn()
 		+ "`, `" + BlockTableFields.resets.getCollumn()
 		+ "`, `" + BlockTableFields.world.getCollumn()
-		+ "`) VALUES (?, ?, ?, ?, ?, ?, ?);");
+		+ "`, `" + BlockTableFields.actiontype.getCollumn()
+		+ "`) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
 	    update = conn.prepareStatement("UPDATE `" + DBTables.BlocksTable.getTableName() + "` SET `" + BlockTableFields.recorded.getCollumn()
 		+ "` = ?, `" + BlockTableFields.resets.getCollumn()
 		+ "` = ? WHERE `id` = ?;");
@@ -2298,6 +2285,8 @@ public abstract class JobsDAO {
 		    if (block.getValue().getTime() < current && block.getValue().getTime() != -1)
 			continue;
 
+		    String actionType = block.getKey().split(":")[0];
+
 		    insert.setInt(1, worldId);
 		    insert.setInt(2, block.getValue().getX());
 		    insert.setInt(3, block.getValue().getY());
@@ -2305,6 +2294,7 @@ public abstract class JobsDAO {
 		    insert.setLong(5, block.getValue().getRecorded());
 		    insert.setLong(6, block.getValue().getTime());
 		    insert.setString(7, world);
+		    insert.setString(8, actionType);
 		    insert.addBatch();
 		    block.getValue().setAction(DBAction.NONE);
 
@@ -2403,13 +2393,14 @@ public abstract class JobsDAO {
 		    continue;
 
 		int id = res.getInt("id");
+		ActionType actionType = ActionType.getByName(res.getString(BlockTableFields.actiontype.getCollumn()));
 		int x = res.getInt(BlockTableFields.x.getCollumn());
 		int y = res.getInt(BlockTableFields.y.getCollumn());
 		int z = res.getInt(BlockTableFields.z.getCollumn());
 		long resets = res.getLong(BlockTableFields.resets.getCollumn());
 		Location loc = new Location(world, x, y, z);
 
-		BlockProtection bp = Jobs.getBpManager().addP(loc, resets, true, false);
+		BlockProtection bp = Jobs.getBpManager().addP(actionType, loc, resets, true, false);
 		bp.setId(id);
 		bp.setRecorded(res.getLong(BlockTableFields.recorded.getCollumn()));
 		bp.setAction(DBAction.NONE);

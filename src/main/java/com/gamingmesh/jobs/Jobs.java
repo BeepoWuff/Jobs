@@ -1086,7 +1086,7 @@ public final class Jobs extends JavaPlugin {
 		return;
 
 	    if (info.getType() == ActionType.BREAK && block != null)
-		getBpManager().remove(block);
+		getBpManager().remove(info.getType(), block);
 
 	    if (pointAmount != 0D)
 		jPlayer.setSaved(false);
@@ -1294,7 +1294,7 @@ public final class Jobs extends JavaPlugin {
 
 	    //need to update bp
 	    if (block != null) {
-		BlockProtection bp = getBpManager().getBp(block.getLocation());
+		BlockProtection bp = getBpManager().getBp(info.getType(), block.getLocation());
 		if (bp != null)
 		    bp.setPaid(true);
 	    }
@@ -1324,15 +1324,16 @@ public final class Jobs extends JavaPlugin {
 	    return false;
 	}
 
+	ActionType actionType = info.getType();
 	BlockProtectionManager manager = getBpManager();
-	BlockProtection blockProtection = manager.getBp(block.getLocation());
+	BlockProtection blockProtection = manager.getBp(actionType, block.getLocation());
 
 	// No specific block data but using global timer
 	if (
 	    blockProtection == null &&
 	    gConfigManager.useGlobalTimer
 	) {
-	    manager.add(block, gConfigManager.globalblocktimer);
+	    manager.add(actionType, block, gConfigManager.globalblocktimer);
 
 	    return true;
 	}
@@ -1341,7 +1342,7 @@ public final class Jobs extends JavaPlugin {
 	Integer blockDelayTime = manager.getBlockDelayTime(block);
 
 	if (time == -1L) {
-	    manager.remove(block);
+	    manager.remove(actionType, block);
 
 	    return false;
 	}
@@ -1350,7 +1351,7 @@ public final class Jobs extends JavaPlugin {
 	    time < System.currentTimeMillis() &&
 	    blockProtection.getAction() != DBAction.DELETE
 	) {
-	    manager.remove(block);
+	    manager.remove(actionType, block);
 
 	    return true;
 	}
@@ -1366,7 +1367,7 @@ public final class Jobs extends JavaPlugin {
 	    return false;
 	}
 
-	manager.add(block, blockDelayTime);
+	manager.add(actionType, block, blockDelayTime);
 
 	if (
 	    (
@@ -1375,18 +1376,19 @@ public final class Jobs extends JavaPlugin {
 	    ) &&
 	    gConfigManager.useGlobalTimer
 	) {
-	    manager.add(block, gConfigManager.globalblocktimer);
+	    manager.add(actionType, block, gConfigManager.globalblocktimer);
 	}
 
 	return true;
     }
 
     private static boolean processBlockProtectionPlace(JobsPlayer player, ActionInfo info, Block block, boolean inform) {
+	ActionType actionType = info.getType();
 	BlockProtectionManager manager = getBpManager();
-	BlockProtection blockProtection = manager.getBp(block.getLocation());
+	BlockProtection blockProtection = manager.getBp(actionType, block.getLocation());
 
 	if (blockProtection == null) {
-	    manager.add(block, manager.getBlockDelayTime(block));
+	    manager.add(actionType, block, manager.getBlockDelayTime(block));
 
 	    return true;
 	}
@@ -1394,7 +1396,7 @@ public final class Jobs extends JavaPlugin {
 	long time = blockProtection.getTime();
 	Integer blockDelayTime = manager.getBlockDelayTime(block);
 
-	manager.add(block, blockDelayTime);
+	manager.add(actionType, block, blockDelayTime);
 
 	if (time == -1L) {
 	    return (

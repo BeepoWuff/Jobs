@@ -26,6 +26,7 @@ import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+import com.gamingmesh.jobs.config.BlockProtectionManager;
 import org.bukkit.Chunk;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -118,7 +119,8 @@ public class JobsListener implements Listener {
 	    return;
 	if (!Jobs.getGCManager().canPerformActionInWorld(event.getBlock().getWorld()))
 	    return;
-	Jobs.getBpManager().remove(event.getToBlock());
+
+	BlockProtectionManager.forActionType(actionType -> Jobs.getBpManager().remove(actionType, event.getToBlock()));
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -369,14 +371,14 @@ public class JobsListener implements Listener {
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onCropGrown(final BlockGrowEvent event) {
 	if (Jobs.getGCManager().canPerformActionInWorld(event.getBlock().getWorld())) {
-	    plugin.getServer().getScheduler().runTaskLater(plugin, () -> Jobs.getBpManager().remove(event.getBlock()), 1L);
+	    BlockProtectionManager.forActionType(actionType -> plugin.getServer().getScheduler().runTaskLater(plugin, () -> Jobs.getBpManager().remove(actionType, event.getBlock()), 1L));
 	}
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onTreeGrown(final StructureGrowEvent event) {
 	if (!event.getBlocks().isEmpty() && Jobs.getGCManager().canPerformActionInWorld(event.getBlocks().get(0).getWorld())) {
-	    plugin.getServer().getScheduler().runTaskLater(plugin, () -> event.getBlocks().forEach(blockState -> Jobs.getBpManager().remove(blockState.getBlock())), 1L);
+	    BlockProtectionManager.forActionType(actionType -> plugin.getServer().getScheduler().runTaskLater(plugin, () -> event.getBlocks().forEach(blockState -> Jobs.getBpManager().remove(actionType, blockState.getBlock())), 1L));
 	}
     }
 
