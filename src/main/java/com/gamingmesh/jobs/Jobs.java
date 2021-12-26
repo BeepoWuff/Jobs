@@ -77,6 +77,7 @@ import com.gamingmesh.jobs.container.Job;
 import com.gamingmesh.jobs.container.JobInfo;
 import com.gamingmesh.jobs.container.JobProgression;
 import com.gamingmesh.jobs.container.JobsPlayer;
+import com.gamingmesh.jobs.container.JobsWorld;
 import com.gamingmesh.jobs.container.Log;
 import com.gamingmesh.jobs.container.PlayerInfo;
 import com.gamingmesh.jobs.container.PlayerPoints;
@@ -100,6 +101,11 @@ import com.gamingmesh.jobs.listeners.JobsPayment14Listener;
 import com.gamingmesh.jobs.listeners.JobsPaymentListener;
 import com.gamingmesh.jobs.listeners.PistonProtectionListener;
 import com.gamingmesh.jobs.selection.SelectionManager;
+import com.gamingmesh.jobs.stuff.Loging;
+import com.gamingmesh.jobs.stuff.TabComplete;
+import com.gamingmesh.jobs.stuff.ToggleBarHandling;
+import com.gamingmesh.jobs.stuff.Util;
+import com.gamingmesh.jobs.stuff.VersionChecker;
 import com.gamingmesh.jobs.stuff.complement.Complement;
 import com.gamingmesh.jobs.stuff.complement.Complement1;
 import com.gamingmesh.jobs.stuff.complement.Complement2;
@@ -112,6 +118,7 @@ import net.Zrips.CMILib.Colors.CMIChatColor;
 import net.Zrips.CMILib.Container.PageInfo;
 import net.Zrips.CMILib.Items.CMIMaterial;
 import net.Zrips.CMILib.Logs.CMIDebug;
+import net.Zrips.CMILib.Messages.CMIMessages;
 import net.Zrips.CMILib.RawMessages.RawMessage;
 import net.Zrips.CMILib.Version.Version;
 
@@ -231,9 +238,9 @@ public final class Jobs extends JavaPlugin {
     }
 
     public void removeBlockOwnerShip(org.bukkit.block.Block block) {
-	for (BlockOwnerShip ship : blockOwnerShipsMaterial.values()) {
+	BlockOwnerShip ship = blockOwnerShipsMaterial.get(CMIMaterial.get(block));
+	if (ship != null)
 	    ship.remove(block);
-	}
     }
 
     /**
@@ -260,7 +267,7 @@ public final class Jobs extends JavaPlugin {
 	try {
 	    if (Integer.parseInt(papi
 		.getDescription().getVersion().replaceAll("[^\\d]", "")) >= 2100 && new PlaceholderAPIHook(this).register()) {
-		consoleMsg("&e[Jobs] PlaceholderAPI hooked.");
+		consoleMsg("&6PlaceholderAPI &ehooked.");
 	    }
 	} catch (NumberFormatException ex) {
 	    return false;
@@ -569,7 +576,7 @@ public final class Jobs extends JavaPlugin {
 		getPlayerManager().addPlayerToCache(jPlayer);
 	}
 	if (!getPlayerManager().getPlayersCache().isEmpty())
-	    consoleMsg("&e[Jobs] Preloaded &6" + getPlayerManager().getPlayersCache().size() + " &eplayers data in &6" + ((int) ((System.currentTimeMillis() - time) / 1000.0D * 100.0D) / 100.0D));
+	    consoleMsg("&ePreloaded &6" + getPlayerManager().getPlayersCache().size() + " &eplayers data in &6" + ((int) ((System.currentTimeMillis() - time) / 1000.0D * 100.0D) / 100.0D));
     }
 
     public static void convertDatabase() {
@@ -580,6 +587,14 @@ public final class Jobs extends JavaPlugin {
 	    getPlayerManager().reload();
 
 	    dao.truncateAllTables();
+
+	    for (Job one : Jobs.getJobs()) {
+		dao.recordNewJobName(one, one.getId());
+	    }
+	    for (JobsWorld one : Util.getJobsWorlds().values()) {
+		dao.recordNewWorld(one.getName(), one.getId());
+	    }
+
 	    getPlayerManager().convertChacheOfPlayers(true);
 
 	    dao.continueConvertions(archivelist);
@@ -709,8 +724,12 @@ public final class Jobs extends JavaPlugin {
 	return versionCheckManager;
     }
 
+    private final static String prefix = "&6------------- &2Jobs &6-------------";
+    private final static String suffix = "&6------------------------------------";
+
     @Override
     public void onEnable() {
+	CMIMessages.consoleMessage(prefix);
 	instance = this;
 
 	try {
@@ -772,12 +791,14 @@ public final class Jobs extends JavaPlugin {
 	    getCommandManager().fillCommands();
 	    getDBManager().getDB().triggerTableIdUpdate();
 
-	    consoleMsg("&e[Jobs] Plugin has been enabled successfully.");
+	    consoleMsg("&ePlugin has been enabled successfully.");
 	} catch (Throwable e) {
 	    e.printStackTrace();
 	    System.out.println("There was some issues when starting plugin. Please contact dev about this. Plugin will be disabled.");
 	    setEnabled(false);
 	}
+
+	CMIMessages.consoleMessage(suffix);
     }
 
     public static void reload() {
@@ -866,11 +887,12 @@ public final class Jobs extends JavaPlugin {
 	    getScheduleManager().start();
 	} else
 	    getScheduleManager().cancel();
-
     }
 
     @Override
     public void onDisable() {
+
+	CMIMessages.consoleMessage(prefix);
 	HandlerList.unregisterAll(this);
 
 	if (dao != null) {
@@ -894,6 +916,8 @@ public final class Jobs extends JavaPlugin {
 	if (dao != null) {
 	    dao.closeConnections();
 	}
+
+	CMIMessages.consoleMessage(suffix);
     }
 
     private static void checkDailyQuests(JobsPlayer jPlayer, Job job, ActionInfo info) {
