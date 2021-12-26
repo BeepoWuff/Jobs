@@ -1303,82 +1303,138 @@ public final class Jobs extends JavaPlugin {
 	}
     }
 
+    private static boolean blockActionIsProtected(BlockProtection blockProtection, long time) {
+	return (
+	    (
+		time > System.currentTimeMillis() ||
+		blockProtection.isPaid()
+	    ) &&
+	    blockProtection.getAction() != DBAction.DELETE
+	);
+    }
+
+    private static void blockProtectionInformPlayer(JobsPlayer player, long time) {
+	String timeOutput = TimeManage.to24hourShort(time - System.currentTimeMillis());
+	CMIActionBar.send(player.getPlayer(), lManager.getMessage("message.blocktimer", "[time]", timeOutput));
+    }
+
+    private static boolean processBlockProtectionBreak(JobsPlayer player, ActionInfo info, Block block, boolean inform) {
+	if (block.hasMetadata("JobsExploit")) {
+	    //player.sendMessage("This block is protected using Rukes' system!");
+	    return false;
+	}
+
+	BlockProtectionManager manager = getBpManager();
+	BlockProtection blockProtection = manager.getBp(block.getLocation());
+
+	// No specific block data but using global timer
+	if (
+	    blockProtection == null &&
+	    gConfigManager.useGlobalTimer
+	) {
+	    manager.add(block, gConfigManager.globalblocktimer);
+
+	    return true;
+	}
+
+	long time = blockProtection.getTime();
+	Integer blockDelayTime = manager.getBlockDelayTime(block);
+
+	if (time == -1L) {
+	    manager.remove(block);
+
+	    return false;
+	}
+
+	if (
+	    time < System.currentTimeMillis() &&
+	    blockProtection.getAction() != DBAction.DELETE
+	) {
+	    manager.remove(block);
+
+	    return true;
+	}
+
+	if (blockActionIsProtected(blockProtection, time)) {
+	    if (
+		inform &&
+		player.canGetPaid(info)
+	    ) {
+		blockProtectionInformPlayer(player, time);
+	    }
+
+	    return false;
+	}
+
+	manager.add(block, blockDelayTime);
+
+	if (
+	    (
+		blockDelayTime == null ||
+		blockDelayTime == 0
+	    ) &&
+	    gConfigManager.useGlobalTimer
+	) {
+	    manager.add(block, gConfigManager.globalblocktimer);
+	}
+
+	return true;
+    }
+
+    private static boolean processBlockProtectionPlace(JobsPlayer player, ActionInfo info, Block block, boolean inform) {
+	BlockProtectionManager manager = getBpManager();
+	BlockProtection blockProtection = manager.getBp(block.getLocation());
+
+	if (blockProtection == null) {
+	    manager.add(block, manager.getBlockDelayTime(block));
+
+	    return true;
+	}
+
+	long time = blockProtection.getTime();
+	Integer blockDelayTime = manager.getBlockDelayTime(block);
+
+	manager.add(block, blockDelayTime);
+
+	if (time == -1L) {
+	    return (
+		!blockProtection.isPaid() ||
+		blockProtection.getTime() != -1L ||
+		blockDelayTime == null ||
+		blockDelayTime != -1
+	    );
+	}
+
+	if (
+	    time < System.currentTimeMillis() &&
+	    blockProtection.getAction() != DBAction.DELETE
+	) {
+	    return true;
+	}
+
+	if (blockActionIsProtected(blockProtection, time)) {
+	    if (
+		inform &&
+		player.canGetPaid(info)
+	    ) {
+		blockProtectionInformPlayer(player, time);
+	    }
+
+	    return false;
+	}
+
+	return true;
+    }
+
     private static boolean isBpOk(JobsPlayer player, ActionInfo info, Block block, boolean inform) {
 	if (block == null || !gConfigManager.useBlockProtection)
 	    return true;
 
-	if (info.getType() == ActionType.BREAK) {
-	    if (block.hasMetadata("JobsExploit")) {
-		//player.sendMessage("This block is protected using Rukes' system!");
-		return false;
-	    }
-
-	    BlockProtection bp = getBpManager().getBp(block.getLocation());
-	    if (bp != null) {
-		long time = bp.getTime();
-		Integer cd = getBpManager().getBlockDelayTime(block);
-
-		if (time == -1L) {
-		    getBpManager().remove(block);
-		    return false;
-		}
-
-		if (time < System.currentTimeMillis() && bp.getAction() != DBAction.DELETE) {
-		    getBpManager().remove(block);
-		    return true;
-		}
-
-		if ((time > System.currentTimeMillis() || bp.isPaid()) && bp.getAction() != DBAction.DELETE) {
-		    if (inform && player.canGetPaid(info)) {
-			String timeOutput = TimeManage.to24hourShort(time - System.currentTimeMillis());
-			CMIActionBar.send(player.getPlayer(), lManager.getMessage("message.blocktimer", "[time]", timeOutput));
-		    }
-
-		    return false;
-		}
-
-		getBpManager().add(block, cd);
-
-		if ((cd == null || cd == 0) && gConfigManager.useGlobalTimer) {
-		    getBpManager().add(block, gConfigManager.globalblocktimer);
-		}
-
-	    } else if (gConfigManager.useGlobalTimer) {
-		getBpManager().add(block, gConfigManager.globalblocktimer);
-	    }
-	} else if (info.getType() == ActionType.PLACE) {
-	    BlockProtection bp = getBpManager().getBp(block.getLocation());
-	    if (bp != null) {
-		Long time = bp.getTime();
-		Integer cd = getBpManager().getBlockDelayTime(block);
-		if (time != -1L) {
-		    if (time < System.currentTimeMillis() && bp.getAction() != DBAction.DELETE) {
-			getBpManager().add(block, cd);
-			return true;
-		    }
-
-		    if ((time > System.currentTimeMillis() || bp.isPaid()) && bp.getAction() != DBAction.DELETE) {
-			if (inform && player.canGetPaid(info)) {
-			    String timeOutput = TimeManage.to24hourShort(time - System.currentTimeMillis());
-			    CMIActionBar.send(player.getPlayer(), lManager.getMessage("message.blocktimer", "[time]", timeOutput));
-			}
-
-			getBpManager().add(block, cd);
-			return false;
-		    }
-
-		    // Lets add protection in any case
-		    getBpManager().add(block, cd);
-		} else if (bp.isPaid() && bp.getTime() == -1L && cd != null && cd == -1) {
-		    getBpManager().add(block, cd);
-		    return false;
-		} else
-		    getBpManager().add(block, cd);
-	    } else
-		getBpManager().add(block, getBpManager().getBlockDelayTime(block));
-	}
-
-	return true;
+	return switch(info.getType()) {
+	    case BREAK -> processBlockProtectionBreak(player, info, block, inform);
+	    case PLACE -> processBlockProtectionPlace(player, info, block, inform);
+	    default -> true;
+	};
     }
 
     private static int getPlayerExperience(Player player) {
