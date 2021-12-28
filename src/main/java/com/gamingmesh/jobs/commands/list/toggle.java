@@ -9,69 +9,49 @@ import com.gamingmesh.jobs.commands.Cmd;
 import com.gamingmesh.jobs.container.JobsPlayer;
 import com.gamingmesh.jobs.stuff.ToggleBarHandling;
 
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.function.Supplier;
+
 public class toggle implements Cmd {
+    private static final Map<String, Supplier<Map<String, Boolean>>> toggleTypeMaps = new HashMap<>();
+    static {
+	toggleTypeMaps.put("bossbar", ToggleBarHandling::getBossBarToggle);
+	toggleTypeMaps.put("actionbar", ToggleBarHandling::getActionBarToggle);
+	toggleTypeMaps.put("blockprotection", ToggleBarHandling::getBlockProtectionToggle);
+    }
 
     @Override
     public boolean perform(Jobs plugin, final CommandSender sender, final String[] args) {
-	if (!(sender instanceof Player)) {
+	if (!(sender instanceof Player player)) {
 	    sender.sendMessage(Jobs.getLanguage().getMessage("general.error.ingame"));
 	    return false;
 	}
 
-	boolean isBossbar = false, isActionbar = false, isBlockProtection = false;
 	if (
 	    args.length != 1 ||
-	    (
-		!(isBossbar = args[0].equalsIgnoreCase("bossbar")) &&
-		!(isActionbar = args[0].equalsIgnoreCase("actionbar")) &&
-		!(isBlockProtection = args[0].equalsIgnoreCase("blockprotection"))
-	    )
+	    !toggleTypeMaps.containsKey(args[0].toLowerCase(Locale.ROOT))
 	) {
 	    Jobs.getCommandManager().sendUsage(sender, "toggle");
 
 	    return true;
 	}
 
-	Player player = (Player) sender;
+	String toggleType = args[0].toLowerCase(Locale.ROOT);
 	String playerUUID = player.getUniqueId().toString();
+	Map<String, Boolean> toggleTypeMap = toggleTypeMaps.get(toggleType).get();
 
-	if (isActionbar) {
-	    Boolean ex = ToggleBarHandling.getActionBarToggle().get(playerUUID);
+	boolean existingValue = toggleTypeMap.getOrDefault(playerUUID, true);
+	boolean newValue = !existingValue;
 
-	    if (ex == null || ex.booleanValue()) {
-		ToggleBarHandling.getActionBarToggle().put(playerUUID, false);
-		sender.sendMessage(Jobs.getLanguage().getMessage("command.toggle.output.off"));
-	    } else {
-		ToggleBarHandling.getActionBarToggle().put(playerUUID, true);
-		sender.sendMessage(Jobs.getLanguage().getMessage("command.toggle.output.on"));
-	    }
-	}
+	toggleTypeMap.put(playerUUID, newValue);
+	sender.sendMessage(Jobs.getLanguage().getMessage(String.format("command.toggle.output.%s", (newValue ? "on" : "off"))));
 
-	if (isBossbar) {
-	    Boolean ex = ToggleBarHandling.getBossBarToggle().get(playerUUID);
-
-	    if (ex == null || ex.booleanValue()) {
-		ToggleBarHandling.getBossBarToggle().put(playerUUID, false);
-		sender.sendMessage(Jobs.getLanguage().getMessage("command.toggle.output.off"));
-
-		JobsPlayer jPlayer = Jobs.getPlayerManager().getJobsPlayer(player.getUniqueId());
-		if (jPlayer != null)
-		    jPlayer.hideBossBars();
-	    } else {
-		ToggleBarHandling.getBossBarToggle().put(playerUUID, true);
-		sender.sendMessage(Jobs.getLanguage().getMessage("command.toggle.output.on"));
-	    }
-	}
-
-	if (isBlockProtection) {
-	    Boolean ex = ToggleBarHandling.getBlockProtectionToggle().get(playerUUID);
-
-	    if (ex == null || ex) {
-		ToggleBarHandling.getBlockProtectionToggle().put(playerUUID, false);
-		sender.sendMessage(Jobs.getLanguage().getMessage("command.toggle.output.off"));
-	    } else {
-		ToggleBarHandling.getBlockProtectionToggle().put(playerUUID, true);
-		sender.sendMessage(Jobs.getLanguage().getMessage("command.toggle.output.on"));
+	if (toggleType.equals("bossbar")) {
+	    JobsPlayer jPlayer = Jobs.getPlayerManager().getJobsPlayer(player.getUniqueId());
+	    if (jPlayer != null) {
+		jPlayer.hideBossBars();
 	    }
 	}
 
