@@ -1314,6 +1314,12 @@ public final class Jobs extends JavaPlugin {
     }
 
     private static void blockProtectionInformPlayer(JobsPlayer player, long time) {
+	// Don't show to players that have explicitly toggled off blockprotection output
+	boolean showInActionbar = ToggleBarHandling.getBlockProtectionToggle().getOrDefault(player.playerUUID.toString(), true);
+	if (!showInActionbar) {
+	    return;
+	}
+
 	String timeOutput = TimeManage.to24hourShort(time - System.currentTimeMillis());
 	CMIActionBar.send(player.getPlayer(), lManager.getMessage("message.blocktimer", "[time]", timeOutput));
     }

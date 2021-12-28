@@ -14,6 +14,7 @@ public class ToggleBarHandling {
 
     static Map<String, Boolean> actionBarToggle = new HashMap<>();
     static Map<String, Boolean> bossBarToggle = new HashMap<>();
+    static Map<String, Boolean> blockProtectionToggle = new HashMap<>();
 
     public static void load() {
 	YmlMaker f = new YmlMaker(Jobs.getFolder(), "actionBarBossbar.yml");
@@ -103,5 +104,9 @@ public class ToggleBarHandling {
 
     public static Map<String, Boolean> getBossBarToggle() {
 	return bossBarToggle;
+    }
+
+    public static Map<String, Boolean> getBlockProtectionToggle() {
+	return blockProtectionToggle;
     }
 }

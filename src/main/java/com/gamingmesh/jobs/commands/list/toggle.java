@@ -18,9 +18,17 @@ public class toggle implements Cmd {
 	    return false;
 	}
 
-	boolean isBossbar = false, isActionbar = false;
-	if (args.length != 1 || (!(isBossbar = args[0].equalsIgnoreCase("bossbar")) && !(isActionbar = args[0].equalsIgnoreCase("actionbar")))) {
+	boolean isBossbar = false, isActionbar = false, isBlockProtection = false;
+	if (
+	    args.length != 1 ||
+	    (
+		!(isBossbar = args[0].equalsIgnoreCase("bossbar")) &&
+		!(isActionbar = args[0].equalsIgnoreCase("actionbar")) &&
+		!(isBlockProtection = args[0].equalsIgnoreCase("blockprotection"))
+	    )
+	) {
 	    Jobs.getCommandManager().sendUsage(sender, "toggle");
+
 	    return true;
 	}
 
@@ -51,6 +59,18 @@ public class toggle implements Cmd {
 		    jPlayer.hideBossBars();
 	    } else {
 		ToggleBarHandling.getBossBarToggle().put(playerUUID, true);
+		sender.sendMessage(Jobs.getLanguage().getMessage("command.toggle.output.on"));
+	    }
+	}
+
+	if (isBlockProtection) {
+	    Boolean ex = ToggleBarHandling.getBlockProtectionToggle().get(playerUUID);
+
+	    if (ex == null || ex) {
+		ToggleBarHandling.getBlockProtectionToggle().put(playerUUID, false);
+		sender.sendMessage(Jobs.getLanguage().getMessage("command.toggle.output.off"));
+	    } else {
+		ToggleBarHandling.getBlockProtectionToggle().put(playerUUID, true);
 		sender.sendMessage(Jobs.getLanguage().getMessage("command.toggle.output.on"));
 	    }
 	}
