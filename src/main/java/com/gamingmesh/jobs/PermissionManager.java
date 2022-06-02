@@ -172,7 +172,12 @@ public class PermissionManager {
 
 	Map<String, Boolean> permissions = jPlayer.getPermissionsCache();
 	if (force || permissions == null || getDelay(perm) + jPlayer.getLastPermissionUpdate() < System.currentTimeMillis()) {
-	    permissions = getAll(player);
+	    if (permissions == null) {
+		permissions = getAll(player);
+	    } else {
+		permissions.clear();
+		permissions.putAll(getAll(player));
+	    }
 	    jPlayer.setPermissionsCache(permissions);
 	    jPlayer.setLastPermissionUpdate(System.currentTimeMillis());
 	}
@@ -205,11 +210,13 @@ public class PermissionManager {
 	    return false;
 
 	Map<String, Boolean> permissions = jPlayer.getPermissionsCache();
+
 	if (permissions == null || getDelay(perm) + jPlayer.getLastPermissionUpdate() < System.currentTimeMillis()) {
-	    if (permissions == null)
+	    if (permissions == null) {
 		permissions = new HashMap<>();
+		jPlayer.setPermissionsCache(permissions);
+	    }
 	    permissions.put(perm, player.hasPermission(perm));
-	    jPlayer.setPermissionsCache(permissions);
 	    jPlayer.setLastPermissionUpdate(System.currentTimeMillis());
 	}
 

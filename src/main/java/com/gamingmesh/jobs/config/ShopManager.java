@@ -58,27 +58,23 @@ public class ShopManager {
 	return ls;
     }
 
-    private static GUIRows getGuiSize(List<ShopItem> ls, int page) {
-	GUIRows guiSize = GUIRows.r1;
+    private static GUIRows getGuiSize(List<ShopItem> ls, @Deprecated int page) {
+	GUIRows guiSize = GUIRows.r6;
 	int size = ls.size();
 
-	if (size > 9)
+	if (size <= 9)
+	    guiSize = GUIRows.r1;
+	else if (size <= 18)
 	    guiSize = GUIRows.r2;
-
-	if (size > 18)
+	else if (size <= 27)
 	    guiSize = GUIRows.r3;
-
-	if (size > 27)
+	else if (size <= 36)
 	    guiSize = GUIRows.r4;
-
-	if (size > 36)
+	else if (size <= 45)
 	    guiSize = GUIRows.r5;
-
-	if (size == 45)
+	
+	if (Jobs.getShopManager().getShopItemList().size() > 45)
 	    guiSize = GUIRows.r6;
-
-	if (page > 1 && guiSize != GUIRows.r6)
-	    guiSize = GUIRows.getByRows(guiSize.getRows() + 1);
 
 	return guiSize;
     }
@@ -124,7 +120,7 @@ public class ShopManager {
 	    }
 
 	    if (item.isHideIfNoEnoughPoints() && item.getRequiredTotalLevels() != -1 &&
-			jPlayer.getTotalLevels() < item.getRequiredTotalLevels()) {
+		jPlayer.getTotalLevels() < item.getRequiredTotalLevels()) {
 		mat = CMIMaterial.STONE_BUTTON;
 		lore.add(Jobs.getLanguage().getMessage("command.shop.info.NoPoints"));
 	    }
@@ -340,7 +336,7 @@ public class ShopManager {
 	    }
 
 	    sItem.setIconAmount(nameSection.getInt("Icon.Amount", 1));
-		sItem.setIconName(CMIChatColor.translate(nameSection.getString("Icon.Name")));
+	    sItem.setIconName(CMIChatColor.translate(nameSection.getString("Icon.Name")));
 
 	    List<String> lore = nameSection.getStringList("Icon.Lore");
 	    for (int b = 0; b < lore.size(); b++) {
@@ -354,8 +350,8 @@ public class ShopManager {
 
 	    sItem.setCustomHeadOwner(nameSection.getBoolean("Icon.CustomHead.UseCurrentPlayer", true));
 	    sItem.setHideIfThereIsNoEnoughPoints(nameSection.getBoolean("Icon.HideIfThereIsNoEnoughPoints"));
-		sItem.setHideWithoutPerm(nameSection.getBoolean("Icon.HideWithoutPermission"));
-		sItem.setRequiredPerm(nameSection.getStringList("RequiredPermission"));
+	    sItem.setHideWithoutPerm(nameSection.getBoolean("Icon.HideWithoutPermission"));
+	    sItem.setRequiredPerm(nameSection.getStringList("RequiredPermission"));
 
 	    if (nameSection.isInt("RequiredTotalLevels"))
 		sItem.setRequiredTotalLevels(nameSection.getInt("RequiredTotalLevels"));
@@ -452,7 +448,7 @@ public class ShopManager {
 		    }
 
 		    items.add(new JobItems(oneItemName.toLowerCase(), id == null ? CMIMaterial.STONE : CMIMaterial.get(id), amount, name, giveLore,
-			    enchants, new BoostMultiplier(), new ArrayList<>(), potionData, null));
+			enchants, new BoostMultiplier(), new ArrayList<>(), potionData, null));
 		}
 		sItem.setitems(items);
 	    }

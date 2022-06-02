@@ -23,9 +23,11 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.OfflinePlayer;
@@ -94,11 +96,13 @@ public class JobsPlayer {
 
     private PlayerPoints pointsData = new PlayerPoints();
 
+    private Set<String> blockOwnerShipInform = null;
+
     public JobsPlayer(OfflinePlayer player) {
 	this.userName = player.getName() == null ? "Unknown" : player.getName();
 	this.playerUUID = player.getUniqueId();
     }
-    
+
     public JobsPlayer(Player player) {
 	this.userName = player.getName() == null ? "Unknown" : player.getName();
 	this.playerUUID = player.getUniqueId();
@@ -398,16 +402,10 @@ public class JobsPlayer {
     }
 
     public int getPlayerMaxQuest(String jobName) {
-	int m1 = (int) Jobs.getPermissionManager().getMaxPermission(this, "jobs.maxquest." + jobName, false, true);
-	int max = m1;
-
-	m1 = (int) Jobs.getPermissionManager().getMaxPermission(this, "jobs.maxquest.all", false, true);
-		
-	if (m1 != 0 && (m1 > max || m1 < max)) {
-	    max = m1;
-	}
-
-	return max;
+	int m1 = (int) Jobs.getPermissionManager().getMaxPermission(this, "jobs.maxquest.all", false, true);
+	if (m1 != 0)
+	    return m1;
+	return (int) Jobs.getPermissionManager().getMaxPermission(this, "jobs.maxquest." + jobName, false, true);
     }
 
     /**
@@ -896,9 +894,9 @@ public class JobsPlayer {
      * Perform disconnect for this player
      */
     public void onDisconnect() {
-//	Jobs.getJobsDAO().savePoints(this);
 	clearBossMaps();
 	isOnline = false;
+	blockOwnerShipInform = null;
 	Jobs.getPlayerManager().addPlayerToCache(this);
     }
 
@@ -1044,10 +1042,10 @@ public class JobsPlayer {
 
     public void resetQuests(List<QuestProgression> quests) {
 	for (QuestProgression oneQ : quests) {
+	    oneQ.reset();
 	    Quest quest = oneQ.getQuest();
-
 	    if (quest != null) {
-		Map<String, QuestProgression> map = qProgression.remove(quest.getJob().getName());
+		Map<String, QuestProgression> map = qProgression.get(quest.getJob().getName());
 
 		if (map != null) {
 		    map.clear();
@@ -1386,16 +1384,16 @@ public class JobsPlayer {
 	maxV = Jobs.getPermissionManager().getMaxPermission(this, perm);
 
 	if (maxV == 0D && type == BlockTypes.FURNACE)
-	    maxV = (double) Jobs.getGCManager().getFurnacesMaxDefault();
+	    maxV = Jobs.getGCManager().getFurnacesMaxDefault();
 
 	if (maxV == 0D && type == BlockTypes.BLAST_FURNACE)
-	    maxV = (double) Jobs.getGCManager().BlastFurnacesMaxDefault;
+	    maxV = Jobs.getGCManager().BlastFurnacesMaxDefault;
 
 	if (maxV == 0D && type == BlockTypes.SMOKER)
-	    maxV = (double) Jobs.getGCManager().SmokersMaxDefault;
+	    maxV = Jobs.getGCManager().SmokersMaxDefault;
 
 	if (maxV == 0D && type == BlockTypes.BREWING_STAND)
-	    maxV = (double) Jobs.getGCManager().getBrewingStandsMaxDefault();
+	    maxV = Jobs.getGCManager().getBrewingStandsMaxDefault();
 
 	return (int) maxV;
     }
@@ -1434,5 +1432,17 @@ public class JobsPlayer {
 	Map<Job, Long> map = new HashMap<>();
 	map.put(job, cal.getTimeInMillis());
 	leftTimes.put(uuid, map);
+    }
+
+    public boolean hasBlockOwnerShipInform(String location) {
+	if (blockOwnerShipInform == null)
+	    return false;
+	return blockOwnerShipInform.contains(location);
+    }
+
+    public void addBlockOwnerShipInform(String location) {
+	if (blockOwnerShipInform == null)
+	    blockOwnerShipInform = new HashSet<String>();
+	this.blockOwnerShipInform.add(location);
     }
 }

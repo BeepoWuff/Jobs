@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 
 import com.gamingmesh.jobs.Jobs;
 import com.gamingmesh.jobs.commands.Cmd;
+import com.gamingmesh.jobs.commands.JobsCommands;
 import com.gamingmesh.jobs.container.JobProgression;
 import com.gamingmesh.jobs.container.JobsPlayer;
 
@@ -14,6 +15,7 @@ public class stats implements Cmd {
 
     @Override
     public boolean perform(Jobs plugin, final CommandSender sender, final String[] args) {
+
 	JobsPlayer jPlayer = null;
 	if (args.length >= 1) {
 	    if (!Jobs.hasPermission(sender, "jobs.command.admin.stats", true))
@@ -40,9 +42,11 @@ public class stats implements Cmd {
 
 	String leftClick = Jobs.getLanguage().getMessage("command.info.gui.leftClick");
 
-	for (JobProgression jobProg : jPlayer.progression) {
+	String pref = JobsCommands.LABEL + " " + info.class.getSimpleName() + " ";
+
+	for (JobProgression jobProg : jPlayer.getJobProgression()) {
 	    for (String msg : Jobs.getCommandManager().jobStatsMessage(jobProg).split("\n")) {
-		new RawMessage().addText(msg).addHover(leftClick).addCommand("jobs info " + jobProg.getJob().getName()).show(sender);
+		new RawMessage().addText(msg).addHover(leftClick).addCommand(pref + jobProg.getJob().getName()).show(sender);
 	    }
 	}
 

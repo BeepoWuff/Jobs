@@ -94,15 +94,15 @@ public class JobsCommands implements CommandExecutor {
 	return cmdClass.perform(plugin, sender, myArgs) || help(sender, 1);
     }
 
-    private String[] reduceArgs(String[] args) {
+    private static String[] reduceArgs(String[] args) {
 	return args.length <= 1 ? new String[0] : Arrays.copyOfRange(args, 1, args.length);
     }
 
-    private boolean hasCommandPermission(CommandSender sender, String cmd) {
+    private static boolean hasCommandPermission(CommandSender sender, String cmd) {
 	return sender.hasPermission("jobs.command." + cmd);
     }
 
-    private String getUsage(String cmd) {
+    private static String getUsage(String cmd) {
 	String cmdString = Jobs.getLanguage().getMessage("command.help.output.cmdFormat", "[command]", Jobs.getLanguage().getMessage("command.help.output.label") + " " + cmd);
 	String msg = Jobs.getLanguage().getMessage("command." + cmd + ".help.args");
 
@@ -129,22 +129,41 @@ public class JobsCommands implements CommandExecutor {
 	    return true;
 	}
 
-	PageInfo pi = new PageInfo(7, commands.size(), page);
+	PageInfo pi = new PageInfo(10, commands.size(), page);
 	if (page > pi.getTotalPages()) {
 	    CMIActionBar.send(sender, Jobs.getLanguage().getMessage("general.error.noHelpPage"));
 	    return true;
 	}
 
-	sender.sendMessage(Jobs.getLanguage().getMessage("command.help.output.title"));
+	RawMessage rm = new RawMessage();
+	rm.addText(Jobs.getLanguage().getMessage("command.help.output.title"));
+
+	boolean pl = sender instanceof Player;
+
+	// Old format
+//	sender.sendMessage(Jobs.getLanguage().getMessage("command.help.output.title"));
 	for (String one : commands) {
 	    if (!pi.isEntryOk())
 		continue;
 	    if (pi.isBreak())
 		break;
 
-	    sender.sendMessage(Jobs.getLanguage().getMessage("command.help.output.cmdInfoFormat", "[command]", getUsage(one), "[description]", Jobs.getLanguage().getMessage("command." + one
-		+ ".help.info")));
+	    // Old format
+//	    sender.sendMessage(Jobs.getLanguage().getMessage("command.help.output.cmdInfoFormat", "[command]", getUsage(one), "[description]", Jobs.getLanguage().getMessage("command." + one
+//		+ ".help.info")));
+
+	    if (pl) {
+		rm.addText("\n" + getUsage(one));
+		rm.addHover(Jobs.getLanguage().getMessage("command." + one + ".help.info"));
+		rm.addSuggestion("/" + Jobs.getLanguage().getMessage("command.help.output.label").toLowerCase() + " " + one + " ");
+	    } else {
+		rm.addText("\n" + Jobs.getLanguage().getMessage("command.help.output.cmdInfoFormat", "[command]", getUsage(one), "[description]", Jobs.getLanguage().getMessage("command." + one
+		    + ".help.info")));
+	    }
+
 	}
+
+	rm.show(sender);
 
 	plugin.showPagination(sender, pi, LABEL + " ?");
 	return true;
@@ -179,7 +198,7 @@ public class JobsCommands implements CommandExecutor {
 	}
     }
 
-    private Class<?> getClass(String cmd) {
+    private static Class<?> getClass(String cmd) {
 	try {
 	    return Class.forName(PACKAGEPATH + "." + cmd.toLowerCase());
 	} catch (ClassNotFoundException e) {
@@ -187,7 +206,7 @@ public class JobsCommands implements CommandExecutor {
 	return null;
     }
 
-    private Cmd getCmdClass(String cmd) {
+    private static Cmd getCmdClass(String cmd) {
 	try {
 	    Class<?> nmsClass = getClass(cmd);
 	    if (nmsClass != null && Cmd.class.isAssignableFrom(nmsClass)) {
@@ -266,7 +285,7 @@ public class JobsCommands implements CommandExecutor {
 		    else
 			message.add(m);
 		} else if (!type.isEmpty()) {
-		    message.add(Jobs.getLanguage().getMessage("command.info.output." + actionType.getName().toLowerCase() + ".none", "%jobname%", job.getJobDisplayName()));
+		    message.add(Jobs.getLanguage().getMessage("command.info.output." + actionType.getName().toLowerCase() + ".none", "%jobname%", job.getDisplayName()));
 		}
 	    }
 	}
@@ -382,12 +401,15 @@ public class JobsCommands implements CommandExecutor {
 	Title title = Jobs.getTitleManager().getTitle(jobProg.getLevel(), jobProg.getJob().getName());
 	String message = Jobs.getLanguage().getMessage(path,
 	    "%joblevel%", jobProg.getLevelFormatted(),
-	    "%jobname%", jobProg.getJob().getJobDisplayName(),
+	    "%jobname%", jobProg.getJob().getDisplayName(),
 	    "%jobxp%", Math.round(jobProg.getExperience() * 100.0) / 100.0,
 	    "%jobmaxxp%", jobProg.getMaxExperience(),
 	    "%titlename%", title == null ? "Unknown" : title.getName());
 	return " " + (isMaxLevelReached ? "" : jobProgressMessage(jobProg.getMaxExperience(), jobProg.getExperience())) + " " + message;
     }
+
+    private String pos = ChatColor.DARK_GREEN + "\u258F";
+    private String pros = ChatColor.YELLOW + "\u258F";
 
     public String jobProgressMessage(double max, double current) {
 	if (current < 0)
@@ -399,21 +421,19 @@ public class JobsCommands implements CommandExecutor {
 	if (max < 1)
 	    max = 2;
 
-	String message = "";
-	String pos = ChatColor.DARK_GREEN + "\u258F";
-	String pros = ChatColor.YELLOW + "\u258F";
+	StringBuilder message = new StringBuilder();
 	int percentage = (int) ((current * 50.0) / max);
 	for (int i = 0; i < percentage; i++) {
-	    message += pos;
+	    message.append(pos);
 	}
 
 	if (50 - percentage < 0)
 	    percentage = 50;
 
 	for (int i = 0; i < 50 - percentage; i++) {
-	    message += pros;
+	    message.append(pros);
 	}
-	return message;
+	return message.toString();
     }
 
     /**
@@ -428,7 +448,7 @@ public class JobsCommands implements CommandExecutor {
 
 	String message = Jobs.getLanguage().getMessage("command.stats.output.message",
 	    "%joblevel%", level,
-	    "%jobname%", jobProg.getJob().getJobDisplayName(),
+	    "%jobname%", jobProg.getJob().getDisplayName(),
 	    "%jobxp%", Math.round(exp * 100.0) / 100.0,
 	    "%jobmaxxp%", maxExperience);
 	return " " + jobProgressMessage(maxExperience, exp) + " " + message;

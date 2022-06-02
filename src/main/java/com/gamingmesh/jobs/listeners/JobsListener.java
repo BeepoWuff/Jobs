@@ -60,6 +60,7 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.event.world.WorldLoadEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -86,6 +87,7 @@ import net.Zrips.CMILib.Colors.CMIChatColor;
 import net.Zrips.CMILib.Items.ArmorTypes;
 import net.Zrips.CMILib.Items.CMIItemStack;
 import net.Zrips.CMILib.Items.CMIMaterial;
+import net.Zrips.CMILib.NBT.CMINBT;
 import net.Zrips.CMILib.Version.Version;
 
 public class JobsListener implements Listener {
@@ -166,7 +168,7 @@ public class JobsListener implements Listener {
 	if (!Jobs.getGCManager().MultiServerCompatability())
 	    Jobs.getPlayerManager().playerJoin(event.getPlayer());
 	else {
-	    plugin.getServer().getScheduler().runTaskLater(plugin, () -> Jobs.getPlayerManager().playerJoin(event.getPlayer()), 10L);
+	    plugin.getServer().getScheduler().runTaskLater(plugin, () -> Jobs.getPlayerManager().playerJoin(event.getPlayer()), 40L);
 	}
     }
 
@@ -382,11 +384,56 @@ public class JobsListener implements Listener {
 	}
     }
 
+    private static boolean usingLimitedItem(ItemStack iih, JobsPlayer jPlayer) {
+	CMINBT nbt = new CMINBT(iih);
+	Integer i = nbt.getInt("JobsLimited");
+
+	if (i == null)
+	    return false;
+
+	Job job = Jobs.getJob(i);
+	if (job == null)
+	    return false;
+
+	JobProgression prog = jPlayer.getJobProgression(job);
+	if (prog == null)
+	    return false;
+
+	String node = nbt.getString("JobsLimitedNode");
+	if (node == null)
+	    return false;
+
+	for (JobLimitedItems oneItem : job.getLimitedItems().values()) {
+	    if (prog.getLevel() >= oneItem.getLevel() || !oneItem.getNode().equalsIgnoreCase(node))
+		continue;
+
+	    CMIActionBar.send(jPlayer.getPlayer(), Jobs.getLanguage().getMessage("limitedItem.error.levelup", "[jobname]", job.getDisplayName()));
+	    return true;
+	}
+
+	return false;
+    }
+
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onLimitedItemInteract(PlayerInteractEvent event) {
+
+	if (!Jobs.hasLimitedItems()) {
+	    return;
+	}
+
 	Player player = event.getPlayer();
-	ItemStack iih = CMIItemStack.getItemInMainHand(player);
-	if (iih.getType() == Material.AIR)
+	ItemStack iih = null;
+	try {
+	    if (Version.isCurrentHigher(Version.v1_8_R3) && event.getHand() != EquipmentSlot.HAND) {
+		iih = CMIItemStack.getItemInOffHand(player);
+	    } else {
+		iih = CMIItemStack.getItemInMainHand(player);
+	    }
+	} catch (Exception e) {
+	    iih = CMIItemStack.getItemInMainHand(player);
+	}
+
+	if (iih == null || iih.getType() == Material.AIR)
 	    return;
 
 	if (event.getClickedBlock() != null && !Jobs.getGCManager().canPerformActionInWorld(event.getClickedBlock().getWorld()))
@@ -397,8 +444,13 @@ public class JobsListener implements Listener {
 	    return;
 
 	Map<Enchantment, Integer> enchants = new HashMap<>(iih.getEnchantments());
-	if (enchants.isEmpty())
+	if (enchants.isEmpty()) {
 	    return;
+	}
+
+	if (usingLimitedItem(iih, jPlayer)) {
+	    event.setCancelled(true);
+	}
 
 	String name = null;
 	List<String> lore = new ArrayList<>();
@@ -406,20 +458,23 @@ public class JobsListener implements Listener {
 	if (iih.hasItemMeta()) {
 	    ItemMeta meta = iih.getItemMeta();
 	    if (meta.hasDisplayName())
-		name = plugin.getComplement().getDisplayName(meta);
+		name = meta.getDisplayName();
 	    if (meta.hasLore())
-		lore = plugin.getComplement().getLore(meta);
+		lore = meta.getLore();
 	}
 
 	String meinOk = null;
+	String itemNode = null;
 	CMIMaterial mat = CMIMaterial.get(iih);
 
+	Integer jobId = null;
 	mein: for (JobProgression one : jPlayer.getJobProgression()) {
 	    for (JobLimitedItems oneItem : one.getJob().getLimitedItems().values()) {
 		if (one.getLevel() >= oneItem.getLevel() || !isThisItem(oneItem, mat, name, lore, enchants))
 		    continue;
-
-		meinOk = one.getJob().getName();
+		jobId = one.getJob().getId();
+		meinOk = one.getJob().getDisplayName();
+		itemNode = oneItem.getNode();
 		break mein;
 	    }
 	}
@@ -427,6 +482,19 @@ public class JobsListener implements Listener {
 	if (meinOk != null) {
 	    event.setCancelled(true);
 	    CMIActionBar.send(player, Jobs.getLanguage().getMessage("limitedItem.error.levelup", "[jobname]", meinOk));
+
+	    CMINBT nbt = new CMINBT(iih);
+	    nbt.setInt("JobsLimited", jobId);
+	    iih = (ItemStack) nbt.setString("JobsLimitedNode", itemNode);
+	    try {
+		if (Version.isCurrentHigher(Version.v1_8_R3) && event.getHand() != EquipmentSlot.HAND) {
+		    CMIItemStack.setItemInOffHand(player, iih);
+		} else {
+		    CMIItemStack.setItemInMainHand(player, iih);
+		}
+	    } catch (Exception e) {
+		CMIItemStack.setItemInMainHand(player, iih);
+	    }
 	}
     }
 
@@ -462,8 +530,9 @@ public class JobsListener implements Listener {
 
 	Chunk from = event.getFrom().getChunk();
 	Chunk to = event.getTo().getChunk();
-	if (from != to)
+	if (from != to) {
 	    plugin.getServer().getPluginManager().callEvent(new JobsChunkChangeEvent(event.getPlayer(), from, to));
+	}
     }
 
     @EventHandler(ignoreCancelled = true)

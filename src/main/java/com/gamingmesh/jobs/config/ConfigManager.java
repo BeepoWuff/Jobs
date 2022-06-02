@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import org.apache.commons.lang.StringEscapeUtils;
 import org.bukkit.configuration.ConfigurationSection;
@@ -59,6 +60,7 @@ import net.Zrips.CMILib.Equations.ParseError;
 import net.Zrips.CMILib.Equations.Parser;
 import net.Zrips.CMILib.FileHandler.ConfigReader;
 import net.Zrips.CMILib.Items.CMIMaterial;
+import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.Version.Version;
 
 public class ConfigManager {
@@ -94,7 +96,6 @@ public class ConfigManager {
 
 	if (!cfg.getFile().isFile())
 	    return;
-	cfg.load();
 
 	cfg.header(Arrays.asList("Jobs configuration.", "", "Edited by roracle to include 1.13 items and item names, prepping for 1.14 as well.",
 	    "",
@@ -303,10 +304,12 @@ public class ConfigManager {
 
 	cfg.addComment(pt + ".Collect", "Payment for collecting things like sweet berry bush, composter or honey");
 
-	generate(cfg, pt + ".Collect.sweet_berry_bush-3");
+	generate(cfg, pt + ".Collect.sweet_berries-2");
+	generate(cfg, pt + ".Collect.sweet_berries-3");
 	generate(cfg, pt + ".Collect.composter");
-	generate(cfg, pt + ".Collect.beehive-5");
-	generate(cfg, pt + ".Collect.bee_nest-5");
+	generate(cfg, pt + ".Collect.honeycomb");
+	generate(cfg, pt + ".Collect.honey_bottle");
+	generate(cfg, pt + ".Collect.glow_berries");
 
 	cfg.addComment(pt + ".Bake", "Payment for cooking raw foods in camp fire");
 	generate(cfg, pt + ".Bake.beef");
@@ -488,7 +491,7 @@ public class ConfigManager {
 	cfg.save();
     }
 
-    private void generate(ConfigReader cfg, String pt) {
+    private static void generate(ConfigReader cfg, String pt) {
 	cfg.get(pt + ".income", 1D);
 	cfg.get(pt + ".points", 1D);
 	cfg.get(pt + ".experience", 1D);
@@ -658,6 +661,11 @@ public class ConfigManager {
 		id = 18;
 		meta = "1";
 		break c;
+	    case "glowitemframe":
+		type = "GLOW_ITEM_FRAME";
+		id = 0;
+		meta = "0";
+		break c;
 	    case "painting":
 		type = "PAINTING";
 		id = 9;
@@ -802,8 +810,8 @@ public class ConfigManager {
 		return null;
 	    }
 
-	    Jobs.getExplore().setExploreEnabled();
-	    Jobs.getExplore().setPlayerAmount(amount);
+	    Jobs.getExploreManager().setExploreEnabled();
+	    Jobs.getExploreManager().setPlayerAmount(amount);
 	} else if (actionType == ActionType.CRAFT) {
 	    if (myKey.startsWith("!")) {
 		type = myKey.substring(1, myKey.length());
@@ -942,14 +950,18 @@ public class ConfigManager {
 	    return;
 	}
 
-	List<Job> jobs = new ArrayList<>();
+	Map<String, Job> map = new TreeMap<>();
+	
+	
 	for (YmlMaker conf : jobFiles) {
 	    Job job = loadJobs(conf.getConfig().getConfigurationSection(""));
 	    if (job != null) {
-		jobs.add(job);
+		map.put(job.getName(), job);
 	    }
 	}
-
+	
+	List<Job> jobs = new ArrayList<>();	
+	jobs.addAll(map.values());
 	Jobs.setJobs(jobs);
 
 	if (!jobs.isEmpty()) {

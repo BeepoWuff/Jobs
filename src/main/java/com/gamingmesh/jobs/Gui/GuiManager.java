@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -23,6 +24,7 @@ import net.Zrips.CMILib.CMILib;
 import net.Zrips.CMILib.GUI.CMIGui;
 import net.Zrips.CMILib.GUI.CMIGuiButton;
 import net.Zrips.CMILib.GUI.GUIManager.GUIClickType;
+import net.Zrips.CMILib.Version.Version;
 
 public class GuiManager {
 
@@ -140,13 +142,17 @@ public class GuiManager {
 
 	    lore.add("");
 	    lore.add(Jobs.getLanguage().getMessage("command.info.gui.leftClick"));
-	    if (jPlayer.isInJob(job))
-		lore.add(Jobs.getLanguage().getMessage("command.info.gui.middleClick"));
+	    if (jPlayer.isInJob(job)) {
+		if (Version.isCurrentEqualOrHigher(Version.v1_18_R1))
+		    lore.add(Jobs.getLanguage().getMessage("command.info.gui.qClick"));
+		else
+		    lore.add(Jobs.getLanguage().getMessage("command.info.gui.middleClick"));
+	    }
 	    lore.add(Jobs.getLanguage().getMessage("command.info.gui.rightClick"));
 
 	    ItemStack guiItem = job.getGuiItem();
 	    ItemMeta meta = guiItem.getItemMeta();
-	    meta.setDisplayName(job.getJobDisplayName());
+	    meta.setDisplayName(job.getDisplayName());
 	    meta.setLore(lore);
 
 	    if (Jobs.getGCManager().hideItemAttributes) {
@@ -174,6 +180,7 @@ public class GuiManager {
 			}
 			break;
 		    case MiddleMouse:
+		    case Q:
 			Jobs.getCommandManager().onCommand(player, null, "jobs", new String[] { "leave", job.getName() });
 			openJobsBrowseGUI(player);
 			break;
@@ -207,7 +214,8 @@ public class GuiManager {
     }
 
     public void openJobsBrowseGUI(Player player, Job job, boolean fromCommand) {
-	Inventory tempInv = plugin.getComplement().createInventory(player, 54, "");
+
+	Inventory tempInv = Bukkit.createInventory(player, 54, "");
 
 	JobsPlayer jPlayer = Jobs.getPlayerManager().getJobsPlayer(player);
 	Boost boost = Jobs.getPlayerManager().getFinalBonus(jPlayer, job);
@@ -280,7 +288,7 @@ public class GuiManager {
 			continue;
 
 		    ItemMeta meta = guiItem.getItemMeta();
-		    meta.setDisplayName(job.getJobDisplayName());
+		    meta.setDisplayName(job.getDisplayName());
 		    meta.setLore(lore);
 		    guiItem.setItemMeta(meta);
 		    tempInv.setItem(i, guiItem.clone());
@@ -300,7 +308,7 @@ public class GuiManager {
 	    }
 
 	    ItemMeta meta = guiItem.getItemMeta();
-	    meta.setDisplayName(job.getJobDisplayName());
+	    meta.setDisplayName(job.getDisplayName());
 	    meta.setLore(lore);
 	    guiItem.setItemMeta(meta);
 	    tempInv.setItem(i, guiItem.clone());
@@ -363,7 +371,7 @@ public class GuiManager {
     }
 
     private void openJobsBrowseGUI(Player player, Job job, List<ActionType> jobsRemained) {
-	Inventory tempInv = plugin.getComplement().createInventory(player, 54, "");
+	Inventory tempInv = Bukkit.createInventory(player, 54, "");
 
 	JobsPlayer jPlayer = Jobs.getPlayerManager().getJobsPlayer(player);
 	Boost boost = Jobs.getPlayerManager().getFinalBonus(jPlayer, job);
@@ -431,7 +439,7 @@ public class GuiManager {
 		    }
 
 		    ItemMeta meta = guiItem.getItemMeta();
-		    meta.setDisplayName(job.getJobDisplayName());
+		    meta.setDisplayName(job.getDisplayName());
 		    meta.setLore(lore);
 		    guiItem.setItemMeta(meta);
 		    tempInv.setItem(i, guiItem.clone());
@@ -450,7 +458,7 @@ public class GuiManager {
 	    }
 
 	    ItemMeta meta = guiItem.getItemMeta();
-	    meta.setDisplayName(job.getJobDisplayName());
+	    meta.setDisplayName(job.getDisplayName());
 	    meta.setLore(lore);
 	    guiItem.setItemMeta(meta);
 	    tempInv.setItem(i, guiItem.clone());

@@ -7,8 +7,8 @@ import org.bukkit.Chunk;
 
 public class ExploreRegion {
 
-    int x;
-    int z;
+    private int x;
+    private int z;
 
     private final Map<Short, ExploreChunk> chunks = new HashMap<>();
 
@@ -17,59 +17,69 @@ public class ExploreRegion {
 	this.z = z;
     }
 
-    public void addChunk(int x, int z, ExploreChunk chunk) {
-	chunks.put(getPlace(x, z), chunk);
+    public void addChunk(int relativeX, int relativeZ, ExploreChunk chunk) {
+	chunks.put(getPlace(relativeX, relativeZ), chunk);
     }
 
     public Map<Short, ExploreChunk> getChunks() {
 	return chunks;
     }
 
-    public ExploreChunk getChunk(int x, int z) {
-	return getChunk(getPlace(x, z));
+    public ExploreChunk getChunk(int relativeX, int relativeZ) {
+	return getChunk(getPlace(relativeX, relativeZ));
     }
 
     public ExploreChunk getChunk(Chunk chunk) {
 	return getChunk(getPlace(chunk));
     }
 
-    public ExploreChunk getChunk(short place) {
+    public ExploreChunk getChunk(long place) {
+	return chunks.get((short) place);
+    }
+
+    public ExploreChunk getChunk(Short place) {
 	return chunks.get(place);
     }
 
-    private static short getPlace(Chunk chunk) {
-	return getPlace(chunk.getX(), chunk.getZ());
+    private long getPlace(Chunk chunk) {
+	return getPlace((x * 32) - chunk.getX(), (z * 32) - chunk.getZ());
     }
 
-    private static short getPlace(int x, int z) {
-	return (short) ((x - ((x >> 5) * 32)) + ((z - ((z >> 5) * 32)) * 32));
+    private static short getPlace(int relativeX, int relativeZ) {
+	return (short) (relativeX * 32 + relativeZ);
     }
 
-    public int getChunkX(short place) {
-	int endX = place % 32;
-
-	if (x < 0)
-	    endX = -endX;
-
-	endX = x * 32 + endX;
-
-	if (endX < 0) {
-	    endX += 32;
-	}
-
-	return endX;
+    @Deprecated
+    public int getChunkX(long place) {
+	return (int) (place / 32);
     }
 
-    public int getChunkZ(short place) {
-	int endZ = (place - (place % 32)) / 32;
-	if (z < 0)
-	    endZ = -endZ;
-	endZ = z * 32 + endZ;
+    public int getChunkRelativeX(short place) {
+	return place / 32;
+    }
 
-	if (endZ < 0) {
-	    endZ += 32;
-	}
+    public int getChunkGlobalX(short place) {
+	return (getX() * 32) - getChunkRelativeX(place);
+    }
 
-	return endZ;
+    @Deprecated
+    public int getChunkZ(long place) {
+	return (int) place % 32;
+    }
+
+    public int getChunkRelativeZ(short place) {
+	return place % 32;
+    }
+
+    public int getChunkGlobalZ(short place) {
+	return (getZ() * 32) - getChunkRelativeZ(place);
+    }
+
+    public int getX() {
+	return x;
+    }
+
+    public int getZ() {
+	return z;
     }
 }

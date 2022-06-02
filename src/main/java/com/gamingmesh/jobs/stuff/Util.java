@@ -409,13 +409,13 @@ public final class Util {
     }
 
     public static boolean enchantMatchesActionInfo(String enchant, EnchantActionInfo actionInfo) {
-	String enchantName = CMIEnchantment.get(actionInfo.getName()).toString();
+	 CMIEnchantment e = CMIEnchantment.get(actionInfo.getName());
+	String enchantName = e != null ? CMIEnchantment.get(actionInfo.getName()).toString() : actionInfo.getName();
 
 	return (
-	    // Enchantment without level e.g. silk_touch
-	    enchant.equalsIgnoreCase(enchantName) ||
-	    // Enchantment with level e.g. fire_aspect:1
-	    enchant.equalsIgnoreCase(enchantName + ":" + actionInfo.getLevel())
-	);
+	// Enchantment without level e.g. silk_touch
+	enchant.equalsIgnoreCase(enchantName) ||
+	// Enchantment with level e.g. fire_aspect:1
+	    enchant.equalsIgnoreCase(enchantName + ":" + actionInfo.getLevel()));
     }
 }

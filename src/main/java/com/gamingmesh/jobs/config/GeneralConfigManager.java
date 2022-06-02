@@ -26,7 +26,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
 import org.bukkit.World;
@@ -90,8 +89,8 @@ public class GeneralConfigManager {
     public boolean ignoreOreGenerators, useBlockProtection, enableSchedule, PayForRenaming, PayForEnchantingOnAnvil, PayForEachCraft, SignsEnabled,
 	SignsColorizeJobName, ShowToplistInScoreboard, useGlobalTimer, useSilkTouchProtection, UseCustomNames,
 	PreventSlimeSplit, PreventMagmaCubeSplit, PreventHopperFillUps, PreventBrewingStandFillUps,
-	BrowseUseNewLook, payExploringWhenGliding = false, disablePaymentIfMaxLevelReached, disablePaymentIfRiding,
-	boostedItemsInOffHand = false, boostedItemsInMainHand, boostedArmorItems/*, preventCropResizePayment*/, payItemDurabilityLoss,
+	BrowseUseNewLook, payExploringWhenGliding = false, resetExploringData = false, disablePaymentIfMaxLevelReached, disablePaymentIfRiding,
+	boostedItemsInOffHand = false, boostedItemsInMainHand, boostedArmorItems, multiplyBoostedExtraValues/*, preventCropResizePayment*/, payItemDurabilityLoss,
 	applyToNegativeIncome, useMinimumOveralPayment, useMinimumOveralPoints, useMinimumOveralExp, useBreederFinder,
 	CancelCowMilking, fixAtMaxLevel, TitleChangeChat, TitleChangeActionBar, LevelChangeChat,
 	LevelChangeActionBar, SoundLevelupUse, SoundTitleChangeUse, UseServerAccount, EmptyServerAccountChat,
@@ -103,7 +102,7 @@ public class GeneralConfigManager {
 	BossBarEnabled = false, BossBarShowOnEachAction = false, BossBarsMessageByDefault = false, ExploreCompact, DBCleaningJobsUse, DBCleaningUsersUse,
 	DisabledWorldsUse, UseAsWhiteListWorldList, PaymentMethodsMoney, PaymentMethodsPoints, PaymentMethodsExp, MythicMobsEnabled,
 	LoggingUse, payForCombiningItems, BlastFurnacesReassign = false, SmokerReassign = false, payForStackedEntities, payForAbove = false,
-	payForEachVTradeItem, allowEnchantingBoostedItems;
+	payForEachVTradeItem, allowEnchantingBoostedItems, bossBarAsync = false;
 
     public ItemStack guiBackButton, guiNextButton;
     public CMIMaterial guiFiller;
@@ -457,6 +456,9 @@ public class GeneralConfigManager {
 	    payExploringWhenGliding = c.get("enable-pay-for-exploring-when-gliding", false);
 	}
 
+	c.addComment("enable-reset-exploring-data", "Option to allow reset exploring data.");
+	resetExploringData = c.get("enable-reset-exploring-data", false);
+
 	c.addComment("disablePaymentIfRiding", "Disables the payment when the player riding on an entity.");
 	disablePaymentIfRiding = c.get("disablePaymentIfRiding", false);
 
@@ -474,12 +476,17 @@ public class GeneralConfigManager {
 	c.addComment("enable-boosted-armor-items", "Do the jobs boost ignore the boosted items usage in armor slots?");
 	boostedArmorItems = c.get("enable-boosted-armor-items", true);
 
+	c.addComment("multiply-boosted-extra-values", "Extra boost values for nearSpawner and petPay will be multiplied by sum of other boost values",
+	    "When set to true and for example nearSpawner set to -0.98 aka 2% of original payment with other bonuses which should double payment will result in you getting 4% instead of corrent 102% payment",
+	    "If set to false all bonus are sumed to one");
+	multiplyBoostedExtraValues = c.get("multiply-boosted-extra-values", false);
+
 	// Better implementation?
 	/*c.addComment("prevent-crop-resize-payment", "Do you want to prevent crop resizing payment when placing more cactus?",
 	    "This option is only related to: sugar_cane, cactus, kelp, bamboo");
 	preventCropResizePayment = c.get("prevent-crop-resize-payment", false);*/
 
-	c.addComment("pay-for-above", "When enabled we will try to pay player for blocks above broken ones. This only applies to sugarcane, bamboo and kelp");
+	c.addComment("pay-for-above", "When enabled we will try to pay player for blocks above broken ones. This only applies to sugarcane, bamboo, kelp and weeping_vines");
 	payForAbove = c.get("pay-for-above", false);
 
 	c.addComment("pay-for-stacked-entities", "Allows to pay for stacked entities for each one. Requires StackMob or WildStacker.");
@@ -618,7 +625,10 @@ public class GeneralConfigManager {
 	}
 
 	DynamicPaymentMaxPenalty = c.get("Economy.DynamicPayment.MaxPenalty", 50.0);
+	DynamicPaymentMaxPenalty /= -100D;
 	DynamicPaymentMaxBonus = c.get("Economy.DynamicPayment.MaxBonus", 300.0);
+	DynamicPaymentMaxBonus /= 100D;
+
 	c.addComment("Economy.MaxPayment.curve.use", "Enabling this feature will mean players will still earn once they reach cap but " +
 	    "will loose a percentage the higher over cap they go. Controlled by a factor. math is ```100/((1/factor*percentOver^2)+1)```");
 	useMaxPaymentCurve = c.get("Economy.MaxPayment.curve.use", false);
@@ -745,7 +755,7 @@ public class GeneralConfigManager {
 	PayForRenaming = c.get("Economy.Repair.PayForRenaming", true);
 
 	c.addComment("Economy.Enchant.PayForEnchantingOnAnvil", "Do you want to give money for enchanting items in anvil?");
-	PayForEnchantingOnAnvil = c.get("Economy.Enchant.PayForEnchantingOnAnvil", false);
+	PayForEnchantingOnAnvil = c.get("Economy.Enchant.PayForEnchantingOnAnvil", true);
 
 	c.addComment("Economy.Enchant.AllowEnchantingBoostedItems", "Do you want to allow players to enchant their boosted items?");
 	allowEnchantingBoostedItems = c.get("Economy.Enchant.AllowEnchantingBoostedItems", true);
@@ -851,10 +861,10 @@ public class GeneralConfigManager {
 	}
 
 	c.addComment("ExploitProtections.Smelt.PreventHopperFillUps", "Prevent payments when hoppers moving items into furnace", "Player will not get paid, but items will be smelted");
-	PreventHopperFillUps = c.get("ExploitProtections.Smelt.PreventHopperFillUps", true);
+	PreventHopperFillUps = c.get("ExploitProtections.Smelt.PreventHopperFillUps", false);
 	c.addComment("ExploitProtections.Smelt.PreventMagmaCubeSplit", "Prevent payments when hoppers moving items into brewing stands",
 	    "Player will not get paid, but items will be brewd as they supose too");
-	PreventBrewingStandFillUps = c.get("ExploitProtections.Brew.PreventBrewingStandFillUps", true);
+	PreventBrewingStandFillUps = c.get("ExploitProtections.Brew.PreventBrewingStandFillUps", false);
 
 	c.addComment("use-breeder-finder", "Breeder finder.",
 	    "If you are not using breeding payment, you can disable this to save little resources. Really little.");
@@ -891,6 +901,8 @@ public class GeneralConfigManager {
 	    c.addComment("BossBar.Timer", "How long in sec to show BossBar for player",
 		"If you have disabled ShowOnEachAction, then keep this number higher than payment interval for better experience");
 	    BossBarTimer = c.get("BossBar.Timer", economyBatchDelay + 1);
+	    c.addComment("BossBar.Async", "If enabled, bossbar creation and management will be asynchronous.", "This avoids TPS drops when the ShowOnEachAction option is activated.");
+	    bossBarAsync = c.get("BossBar.Async", false);
 	}
 
 	c.addComment("ShowActionBars", "You can enable/disable message shown for players in action bar");
@@ -1161,5 +1173,9 @@ public class GeneralConfigManager {
 
     public boolean isInformDuplicates() {
 	return InformDuplicates;
+    }
+
+    public boolean isBossBarAsync() {
+	return bossBarAsync;
     }
 }
