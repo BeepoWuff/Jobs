@@ -14,6 +14,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import net.Zrips.CMILib.Locale.LC;
+import net.Zrips.CMILib.Messages.CMIMessages;
+
 public class toggle implements Cmd {
     private static final Map<String, Supplier<Map<String, Boolean>>> toggleTypeMaps = new HashMap<>();
     static {
@@ -24,8 +27,8 @@ public class toggle implements Cmd {
 
     @Override
     public boolean perform(Jobs plugin, final CommandSender sender, final String[] args) {
-	if (!(sender instanceof Player player)) {
-	    sender.sendMessage(Jobs.getLanguage().getMessage("general.error.ingame"));
+	if (!(sender instanceof Player)) {
+	    CMIMessages.sendMessage(sender, LC.info_Ingame);
 	    return false;
 	}
 
